@@ -2,17 +2,19 @@ package learning.catalog;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 public class ProductCatalog {
-    private final List<Product> products=new ArrayList<>();
+    private final Map<String,Product>products=new LinkedHashMap<>();
     public void addProduct(Product p) {
         if(p==null) {
             throw new IllegalArgumentException("商品不能为空");
         }
-        if(findBySku(p.getSku())!=null) {
+        if(products.containsKey(p.getSku())) {
             throw new IllegalArgumentException("SKU已存在");
         }
-        products.add(p);
+        products.put(p.getSku(),p);
     }
     public int count() {
         return products.size();
@@ -21,12 +23,7 @@ public class ProductCatalog {
         if (sku == null || sku.isBlank()) {
             throw new IllegalArgumentException("SKU不能为空");
         }
-        for (Product product : products) {
-            if (sku.equals(product.getSku())) {
-                return product;
-            }
-        }
-        return null;
+        return products.get(sku);
     }
     public void updateProductName(String sku,String newName) {
         Product p=findBySku(sku);
@@ -45,6 +42,6 @@ public class ProductCatalog {
         product.updateStock(newStock);
     }
     public List<Product> listProducts() {
-        return new ArrayList<>(products);
+        return new ArrayList<>(products.values());
     }
 }

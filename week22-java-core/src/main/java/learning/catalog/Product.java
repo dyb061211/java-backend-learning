@@ -6,7 +6,7 @@ public class Product {
     private int stock;
     private static int createdCount=0;
     public Product(String sku, String name, int stock) {
-        if(this.stock<0) {
+        if(stock<0) {
             throw new IllegalArgumentException("库存数不能为负数");
         }
         if(sku==null||sku.isBlank()) {
