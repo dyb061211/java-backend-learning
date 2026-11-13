@@ -39,13 +39,12 @@ public class Product {
         this.stock = newStock;
     }
     public void updateName(String newName) {
-        if(newName.length()>20) {
-            throw new IllegalArgumentException("商品名称不能大于20个字符");
-        }
         if (newName == null || newName.isBlank()) {
             throw new IllegalArgumentException("商品名称不能为空");
         }
-
+        if(newName.length()>20) {
+            throw new IllegalArgumentException("商品名称不能大于20个字符");
+        }
         this.name = newName;
     }
     public static int getCreatedCount() {

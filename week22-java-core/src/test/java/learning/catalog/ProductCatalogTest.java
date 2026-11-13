@@ -78,4 +78,14 @@ public class ProductCatalogTest {
         assertEquals(3, catalog.count());
         assertEquals("A003", catalog.listProducts().get(0).getSku());
     }
+
+    @Test
+    void updateNameRejectsNull() {
+        Product product = new Product("A001", "Apple", 5);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> product.updateName(null));
+
+        assertEquals("Apple", product.getName());
+    }
 }

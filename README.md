@@ -156,3 +156,65 @@ java -cp week22-java-core/target/week22-java-core-1.0-SNAPSHOT.jar learning.cata
 - 当前采用单线程数据处理，不提供线程安全保证
 - 文件导出不提供原子写入或崩溃恢复保证
 - 未接入数据库、HTTP 或消息队列
+
+
+## Week24：Java 并发基础与任务管理
+
+本周基于已有 Maven 工程，学习 Java 多线程、线程池、同步机制、异步任务处理及资源管理。
+
+### 学习内容
+
+- Thread / Runnable：线程创建、start、run、join、sleep
+- 线程安全：synchronized、volatile、AtomicInteger、ReentrantLock
+- ExecutorService：线程池、Callable、Future、任务异常
+- 任务生命周期：超时、中断、取消、shutdown、shutdownNow
+- ThreadPoolExecutor：有界队列、任务拒绝策略
+- Semaphore：限制共享资源的并发访问
+- ConcurrentHashMap：putIfAbsent 与线程安全边界
+- CompletableFuture：thenApply、thenCombine、handle
+- Virtual Thread：虚拟线程基础
+
+### 综合实验
+
+入口：`learning.concurrent.ConcurrentProductTaskDemo`
+
+使用 6 条固定模拟商品请求，每条模拟等待约 300ms。
+
+实现：
+
+- 顺序执行与并发执行对比
+- 有界线程池与最大活跃任务数统计
+- Future 获取任务结果及异常
+- 5 成功、1 失败的部分失败场景
+- 按输入顺序汇总成功与失败 SKU
+- 等待超时、取消请求与清理确认
+- 线程池关闭
+
+### 实测结果
+
+| 模式 | 耗时 |
+|---|---:|
+| 顺序执行 | 1843ms |
+| 并发数 2 | 926ms |
+| 并发数 3 | 608ms |
+
+模拟失败场景：5 成功、1 失败。
+
+最新 Maven 构建成功，JUnit 10 项通过。
+
+### 运行方式
+
+在 `week22-java-core` 目录执行：
+
+```bash
+mvn clean package
+java -cp target/week22-java-core-1.0-SNAPSHOT.jar learning.concurrent.ConcurrentProductTaskDemo
+```
+
+### 实验边界
+
+- 不调用真实外部 API、数据库或 LLM
+- 不提供任务持久化与崩溃恢复
+- 不保证 Exactly-once
+- 不代表真实生产环境的性能
+- 未将原 ProductCatalog 改造为线程安全系统
