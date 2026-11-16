@@ -218,3 +218,91 @@ java -cp target/week22-java-core-1.0-SNAPSHOT.jar learning.concurrent.Concurrent
 - 不保证 Exactly-once
 - 不代表真实生产环境的性能
 - 未将原 ProductCatalog 改造为线程安全系统
+
+# Week25 — Spring Boot Web
+
+本项目是 Java 后端学习 Week25 的实践工程，使用 Spring Boot 实现一个基于内存的商品 HTTP 服务。
+
+## 技术环境
+
+- Java：运行 JDK 27，编译目标 Java 21
+- Maven：3.10.0
+- Spring Boot：4.1.2
+- Spring MVC、Bean Validation
+- JUnit 5、MockMvc
+- 内嵌 Tomcat
+
+## 学习内容
+
+- Spring IoC、Bean 与构造器注入
+- Spring Boot 自动配置和组件扫描
+- Spring MVC 请求映射、参数绑定与 JSON 序列化
+- 请求体校验与商品业务规则
+- 统一异常处理和 HTTP 状态码
+- `@ConfigurationProperties` 配置管理
+- SLF4J 日志
+- MockMvc 自动化测试
+- Maven 打包和可执行 JAR
+
+## 项目结构
+
+- `Week25SpringWebApplication`：Spring Boot 启动入口
+- `HealthController`：健康检查
+- `ProductController`：商品 HTTP 接口
+- `ProductService`：商品业务与内存数据管理
+- `Product`：只读商品值对象
+- `CreateProductRequest`、`UpdateProductRequest`：请求模型
+- `ProductExceptionHandler`：统一异常处理
+- `CatalogProperties`：商品列表默认数量配置
+
+## HTTP 接口
+
+| 方法 | 路径 | 功能 |
+|---|---|---|
+| GET | `/health` | 健康检查 |
+| POST | `/products` | 创建商品 |
+| GET | `/products/{sku}` | 查询商品 |
+| GET | `/products` | 查询商品列表 |
+| PUT | `/products/{sku}` | 替换商品名称和库存 |
+| DELETE | `/products/{sku}` | 删除商品 |
+
+列表支持 `limit` 和 `sortBySku` 参数。其中 `sortBySku=true` 表示按 SKU 升序排列，排序在数量限制之前执行。
+
+主要 HTTP 状态约定：
+
+- 200：查询或更新成功
+- 201：商品创建成功
+- 204：商品删除成功
+- 400：请求数据不合法
+- 404：商品不存在
+- 409：SKU 重复
+- 500：未预期的服务端错误
+
+## 配置与启动
+
+配置文件：`src/main/resources/application.properties`
+
+默认监听 `127.0.0.1:8080`，支持通过 `catalog.default-limit` 调整列表默认查询数量，允许范围为 1～100。
+
+在 `week25-spring-web` 工程目录运行：
+
+- 开发启动：`mvn spring-boot:run`
+- 运行测试：`mvn test`
+- 构建 JAR：`mvn clean package`
+- 运行 JAR：`java -jar target/week25-spring-web-0.0.1-SNAPSHOT.jar`
+
+## 测试
+
+目前共有 5 个自动化测试，其中 4 个是商品 Web 测试，1 个是 Spring Boot 上下文测试。
+
+已验证创建、查询、重复 SKU、非法输入及商品不存在等场景，并通过真实 HTTP 请求检查主要接口。
+
+## 数据与并发边界
+
+商品存储在当前 JVM 的 `LinkedHashMap` 中，应用重启后恢复为初始化数据。
+
+Service 使用同步方法保护内部 Map 操作；商品使用只读值对象，更新时创建新对象并替换原值。
+
+本项目只面向单 JVM 内存实践，不提供跨进程数据共享、数据库持久化或分布式一致性。
+
+项目目前没有用户认证，仅用于本地学习，不应直接公开部署。
