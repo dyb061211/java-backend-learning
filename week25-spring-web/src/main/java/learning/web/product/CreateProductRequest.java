@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 
 public class CreateProductRequest {
     @NotBlank
+    @Size(max=255)
     private String sku;
 
     @NotBlank

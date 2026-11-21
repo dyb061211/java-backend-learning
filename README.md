@@ -306,3 +306,52 @@ Service 使用同步方法保护内部 Map 操作；商品使用只读值对象�
 本项目只面向单 JVM 内存实践，不提供跨进程数据共享、数据库持久化或分布式一致性。
 
 项目目前没有用户认证，仅用于本地学习，不应直接公开部署。
+
+
+## Week26 — Spring Boot + MySQL + MyBatis
+
+在 Week25 Spring Boot 商品 API 的基础上，
+将商品存储从内存 LinkedHashMap 迁移到 MySQL。
+
+### 学习与实践内容
+
+- JDBC：Connection、PreparedStatement、ResultSet
+- MySQL：商品表、唯一约束、库存约束
+- HikariCP：DataSource 与连接池
+- MyBatis：Mapper 接口、XML SQL、结果映射
+- 商品 API：GET、POST、PUT、DELETE、列表排序与 limit
+- Spring 事务：@Transactional、SELECT FOR UPDATE
+- 商品变更记录：product_change_log
+- 测试隔离：开发数据库与测试数据库分离
+
+### 数据库
+
+- 开发库：week26_catalog_dev
+- 测试库：week26_catalog_test
+- 主要表：products、product_change_log
+
+数据库表结构需提前准备，当前工程不自动建表。
+
+### 构建与运行
+
+在 week25-spring-web 目录执行：
+
+mvn clean package
+
+java -jar target/week25-spring-web-0.0.1-SNAPSHOT.jar
+
+运行前需提供数据库连接配置：
+
+- SPRING_DATASOURCE_URL
+- SPRING_DATASOURCE_USERNAME
+- SPRING_DATASOURCE_PASSWORD
+
+数据库密码通过环境变量提供，不提交到 Git。
+
+### 验证结果
+
+- Maven 测试：5 项通过
+- Maven 打包：BUILD SUCCESS
+- JAR 独立启动及 MySQL 商品查询通过
+- Java 应用重启后商品仍可查询
+- Spring 事务提交与回滚实验通过

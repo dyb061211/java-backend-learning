@@ -8,12 +8,55 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.test.context.TestPropertySource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@TestPropertySource(properties={
+        "spring.datasource.url=jdbc:mysql://127.0.0.1:3306/week26_catalog_test",
+        "spring.datasource.username=backend_user",
+        "spring.datasource.password=${TEST_DB_PASSWORD}"
+})
 public class ProductWebTest {
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private DataSource dataSource;
+
+    private void deleteTestSku(String sku) throws SQLException {
+        try(Connection connection=dataSource.getConnection()) {
+            if(!"week26_catalog_test".equals(connection.getCatalog())) {
+                throw new IllegalStateException("Refusing to modify non-test database");
+            }
+            String sql="DELETE FROM products WHERE sku=?";
+            try(PreparedStatement ps=connection.prepareStatement(sql)) {
+                ps.setString(1,sku);
+                ps.executeUpdate();
+            }
+        }
+    }
+    @BeforeEach
+    void setUP() throws SQLException {
+        deleteTestSku("T901");
+        deleteTestSku("T903");
+        deleteTestSku("T902");
+        deleteTestSku("T904");
+    }
+
+    @AfterEach
+    void tearDown() throws SQLException {
+        deleteTestSku("T901");
+        deleteTestSku("T903");
+        deleteTestSku("T902");
+        deleteTestSku("T904");
+    }
 
     @Test
     void createThenFindProduct() throws Exception {
@@ -36,14 +79,21 @@ public class ProductWebTest {
         mockMvc.perform(post("/products")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"sku":"A001","name":"新键盘","stock":999}
+                        {"sku":"T903","name":"原键盘","stock":10}
+                        """))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"sku":"T903","name":"新键盘","stock":999}
                         """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_SKU"));
-        mockMvc.perform(get("/products/A001"))
+        mockMvc.perform(get("/products/T903"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("键盘"))
+                .andExpect(jsonPath("$.name").value("原键盘"))
                 .andExpect(jsonPath("$.stock").value(10));
+
     }
 
     @Test
@@ -62,8 +112,9 @@ public class ProductWebTest {
 
     @Test
     void missingProductReturns404() throws Exception {
-        mockMvc.perform(get("/products/A999"))
+        mockMvc.perform(get("/products/T904"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
+                .andExpect(jsonPath("$.code")
+                        .value("PRODUCT_NOT_FOUND"));
     }
 }

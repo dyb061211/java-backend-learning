@@ -8,20 +8,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Comparator;
 import java.util.stream.Stream;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProductService {
-    private final Map<String,Product> products=new LinkedHashMap<>();
     private static final Logger log=LoggerFactory.getLogger(ProductService.class);
+    private final ProductMapper productMapper;
 
-    public ProductService() {
-        products.put("A001", new Product("A001", "键盘", 10));
-        products.put("A002", new Product("A002", "鼠标", 20));
-        products.put("A003", new Product("A003", "显示器", 5));
+    public ProductService(ProductMapper productMapper) {
+        this.productMapper=productMapper;
     }
 
     public synchronized Product findBySku(String sku) {
-        Product product = products.get(sku);
+        Product product = productMapper.findProductBySku(sku);
         if (product == null) {
             throw new ProductNotFoundException(sku);
         }
@@ -29,13 +29,10 @@ public class ProductService {
     }
 
     public synchronized List<Product>listProducts(int limit,boolean sortBySku) {
-        Stream<Product> stream=products.values().stream();
         if(sortBySku){
-            stream=stream.sorted(Comparator.comparing(Product::getSku));
+            return productMapper.listProductBySku(limit);
         }
-        return stream
-                .limit(limit)
-                .toList();
+        return productMapper.listProductById(limit);
     }
 
     public synchronized Product createProduct(String sku,String name,int stock) {
@@ -48,16 +45,21 @@ public class ProductService {
         if(stock<0) {
             throw new IllegalArgumentException("Invalid stock");
         }
-        if(products.containsKey(sku)) {
-            log.warn("Created reject, duplicate sku={}",sku);
-            throw new DuplicateSkuException(sku);
+        try{
+            int rows=productMapper.insertProduct(sku,name,stock);
+            if(rows!=1) {
+                throw new IllegalStateException("Insert failed");
+            }
+        }catch(DuplicateKeyException e){
+            if(productMapper.findProductBySku(sku)!=null) {
+                throw new DuplicateSkuException(sku);
+            }
+            throw e;
         }
-        Product product = new Product(sku,name,stock);
-        products.put(sku,product);
-        log.info("Product created, sku={}",sku);
-        return product;
+        return new Product(sku,name,stock);
     }
 
+    @Transactional
     public synchronized Product replaceProduct(String sku,String name,int stock) {
         if (sku == null || sku.isBlank()) {
             throw new IllegalArgumentException("Invalid SKU");
@@ -68,17 +70,31 @@ public class ProductService {
         if (stock < 0) {
             throw new IllegalArgumentException("Invalid stock");
         }
-        if (!products.containsKey(sku)) {
+        Product old=productMapper.findProductForUpdate(sku);
+        if(old==null) {
             throw new ProductNotFoundException(sku);
         }
-        Product updated = new Product(sku, name, stock);
-        products.put(sku, updated);
-        log.info("Product updated, sku={}",sku);
-        return updated;
+        int rows=productMapper.updateProduct(sku,name,stock);
+        boolean sameValues=old.getName().equals(name)&&old.getStock()==stock;
+        if(rows!=1&&!(rows==0&&sameValues)) {
+            throw new IllegalStateException("Product updated failed");
+        }
+        int logRows=productMapper.insertChangeLog(
+                sku,
+                old.getName(),
+                name,
+                old.getStock(),
+                stock
+        );
+        if(logRows!=1) {
+            throw new IllegalStateException("Change log insert failed");
+        }
+        return new Product(sku,name,stock);
     }
 
     public synchronized void deleteProduct(String sku) {
-        if (products.remove(sku) == null) {
+        int rows=productMapper.deleteProduct(sku);
+        if(rows==0) {
             throw new ProductNotFoundException(sku);
         }
         log.info("Product deleted, sku={}", sku);
